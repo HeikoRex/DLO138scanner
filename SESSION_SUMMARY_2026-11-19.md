@@ -46,3 +46,8 @@
   on the actual device.
 - The pre-existing untracked `binaries/firmware.bin` was not modified or
   included in the source commit.
+
+## Next session
+
+- On the other PC, add a graph view for the recorded CSV samples, plotting
+  `mean_mV` and `delta_mV` over the sample sequence.
