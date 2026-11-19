@@ -275,6 +275,21 @@ void dumpSamples()	{
 }
 
 
+// ------------------------
+void dumpSamplesCSV()	{
+// ------------------------
+	USB_PRINTLN("index,time_us,ch1_adc");
+	double timePerSample = ((double)samplingTime) / NUM_SAMPLES;
+	for(uint16_t i = 0; i < NUM_SAMPLES; i++) {
+		USB_PRINT(i);
+		USB_PRINT(",");
+		USB_PRINT((double)i * timePerSample, 3);
+		USB_PRINT(",");
+		USB_PRINTLN(ch1Capture[i]);
+	}
+}
+
+
 
 // ------------------------
 void recordPulse() {
@@ -327,12 +342,7 @@ void recordPulse() {
 // ------------------------
 void dumpRecCSV() {
 // ------------------------
-	USB_PRINTLN("# DLO-138 REC dump");
-	USB_PRINT("# Timebase: "); USB_PRINTLN(getTimebaseLabel());
-	USB_PRINT("# Range: "); USB_PRINTLN(rngNames[rangePos]);
-	USB_PRINT("# Coupling: "); USB_PRINTLN(cplNames[couplingPos]);
-	USB_PRINT("# Records: "); USB_PRINTLN(recCount);
-	USB_PRINTLN("index,mean_adc,rise_adc_per_us_x100,pointer");
+	USB_PRINTLN("index,mean_adc,rise_adc_per_us_x100");
 
 	uint16_t start = (recCount < REC_BUF_SIZE) ? 0 : recHead;
 	for(uint16_t i = 0; i < recCount; i++) {
@@ -341,9 +351,6 @@ void dumpRecCSV() {
 		USB_PRINT(",");
 		USB_PRINT(recBuf[idx].mean);
 		USB_PRINT(",");
-		USB_PRINT(recBuf[idx].rise);
-		USB_PRINT(",");
-		USB_PRINTLN((idx == (recHead == 0 ? REC_BUF_SIZE-1 : recHead-1)) ? "<--" : "");
+		USB_PRINTLN(recBuf[idx].rise);
 	}
-	USB_PRINTLN("# END");
 }

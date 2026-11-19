@@ -41,6 +41,45 @@ Following changes can be applied selectively, to get maximum functionality from 
 		Other				Toggle on screen Analog CH1 statistics display
 
 	Press and hold OK button at power up to reset settings to default
+
+## PC serial commands
+
+The firmware accepts newline terminated commands at 115200 baud. It returns plain text
+and CSV data over the USB serial connection.
+
+| Command | Result |
+| --- | --- |
+| `HELP` | List supported commands |
+| `STATUS` | Report timebase, sample count and operating state |
+| `SAMPLES` | Report the waveform sample depth |
+| `CAPTURE` | Start REC mode and reset the recorded pulse list |
+| `DUMP` | Output only the data collected in REC mode as CSV |
+| `AUTO` / `NORMAL` / `SINGLE` | Select trigger mode |
+| `HOLD ON` / `HOLD OFF` | Freeze or resume display capture |
+| `TIMEBASE 0..11` | Select the configured timebase |
+| `TRIGGER RISING` / `TRIGGER FALLING` | Select trigger edge |
+
+The existing `R`, `D`, `C` and `H` commands remain available for compatibility.
+
+### CSV output
+
+While REC mode is active, each triggered pulse is plotted on the TFT and stored in the
+ring buffer. `DUMP` emits exclusively those recorded values as:
+
+```csv
+index,mean_adc,rise_adc_per_us_x100
+0,1985,125
+1,1987,118
+...
+```
+
+Use the included helper on Windows or Linux:
+
+```text
+python tools/dlo138_serial.py COM3 STATUS
+python tools/dlo138_serial.py COM3 CAPTURE --csv capture.csv
+python tools/dlo138_serial.py COM3 DUMP --csv dump.csv
+```
 	
 # Flash binaries directly via serial interface
 
@@ -86,5 +125,3 @@ STM32F103 - http://www.st.com/en/microcontrollers/stm32f103.html
 Adafruint Graphics Library - https://github.com/adafruit/Adafruit-GFX-Library
 
 Parallel 8 bit ILI9341 library - https://github.com/stevstrong/Adafruit_TFTLCD_8bit_STM32
-
-

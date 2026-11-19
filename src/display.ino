@@ -651,6 +651,38 @@ void drawRecStats(boolean recording)	{
 	}
 }
 
+
+// ------------------------
+void drawRecPlot()	{
+// ------------------------
+	tft.fillRect(hOffset + 1, vOffset + 1, GRID_WIDTH - 2, GRID_HEIGHT - 2, ILI9341_BLACK);
+	drawGrid();
+
+	if(recCount == 0) return;
+
+	uint16_t start = (recCount < REC_BUF_SIZE) ? 0 : recHead;
+	int16_t prevMeanY = -1;
+	int16_t prevRiseY = -1;
+
+	for(uint16_t i = 0; i < recCount; i++) {
+		uint16_t idx = (start + i) % REC_BUF_SIZE;
+		int16_t x = hOffset + 1 + ((uint32_t)i * (GRID_WIDTH - 2)) / recCount;
+
+		int16_t meanY = GRID_HEIGHT + vOffset - (recBuf[idx].mean * (GRID_HEIGHT - 2)) / ADC_MAX_VAL;
+		int16_t riseY = vOffset + GRID_HEIGHT/2 - ((int32_t)recBuf[idx].rise * (GRID_HEIGHT/2 - 2)) / 500;
+		if(riseY < vOffset + 1) riseY = vOffset + 1;
+		if(riseY > vOffset + GRID_HEIGHT - 2) riseY = vOffset + GRID_HEIGHT - 2;
+
+		if(prevMeanY >= 0)
+			tft.drawLine(x - 1, prevMeanY, x, meanY, AN_SIGNAL1);
+		if(prevRiseY >= 0)
+			tft.drawLine(x - 1, prevRiseY, x, riseY, AN_SIGNAL2);
+
+		prevMeanY = meanY;
+		prevRiseY = riseY;
+	}
+}
+
 // ------------------------
 void banner()	{
 // ------------------------
@@ -681,5 +713,3 @@ void banner()	{
 	tft.setCursor(30, 200);
 	tft.print("GNU GENERAL PUBLIC LICENSE Version 3");
 }
-
-

@@ -15,9 +15,117 @@ void setTriggerType(uint8_t tType)	{
 void processSerialCommands() {
 // ------------------------
 	if(!Serial.available()) return;
-	char cmd = Serial.read();
+
+	String line = Serial.readStringUntil('\n');
+	line.trim();
+	line.toUpperCase();
+	if(line.length() == 0) return;
+
+	if(line == "HELP") {
+		USB_PRINTLN("HELP");
+		USB_PRINTLN("STATUS");
+		USB_PRINTLN("SAMPLES");
+		USB_PRINTLN("DUMP");
+		USB_PRINTLN("CAPTURE");
+		USB_PRINTLN("AUTO");
+		USB_PRINTLN("NORMAL");
+		USB_PRINTLN("SINGLE");
+		USB_PRINTLN("HOLD ON|OFF");
+		USB_PRINTLN("TIMEBASE 0..11");
+		USB_PRINTLN("TRIGGER RISING|FALLING");
+		USB_PRINTLN("R|C|H legacy commands");
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "STATUS") {
+		USB_PRINT("STATUS,timebase="); USB_PRINT(currentTimeBase);
+		USB_PRINT(",timebase_name="); USB_PRINT(getTimebaseLabel());
+		USB_PRINT(",samples="); USB_PRINT(NUM_SAMPLES);
+		USB_PRINT(",hold="); USB_PRINT(hold ? "ON" : "OFF");
+		USB_PRINT(",rec="); USB_PRINT(recMode ? "ON" : "OFF");
+		USB_PRINT(",trigger="); USB_PRINT(triggerRising ? "RISING" : "FALLING");
+		USB_PRINT(",triggered="); USB_PRINTLN(triggered ? "YES" : "NO");
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "SAMPLES") {
+		USB_PRINTLN(NUM_SAMPLES);
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "DUMP") {
+		dumpRecCSV();
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "CAPTURE") {
+		recMode = true;
+		hold = false;
+		keepSampling = false;
+		recHead = 0;
+		recCount = 0;
+		repaintLabels();
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "AUTO") {
+		setTriggerType(TRIGGER_AUTO);
+		repaintLabels();
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "NORMAL") {
+		setTriggerType(TRIGGER_NORM);
+		repaintLabels();
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line == "SINGLE") {
+		setTriggerType(TRIGGER_SINGLE);
+		repaintLabels();
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line.startsWith("HOLD ")) {
+		line.remove(0, 5);
+		if(line == "ON") hold = true;
+		else if(line == "OFF") hold = false;
+		else {
+			USB_PRINTLN("ERROR HOLD ON|OFF");
+			return;
+		}
+		repaintLabels();
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line.startsWith("TIMEBASE ")) {
+		String value = line.substring(9);
+		int timeBase = value.toInt();
+		if(value.length() == 0 || timeBase < T20US || timeBase > T50MS) {
+			USB_PRINTLN("ERROR TIMEBASE 0..11");
+			return;
+		}
+		setTimeBase((uint8_t)timeBase);
+		USB_PRINTLN("OK");
+		return;
+	}
+	if(line.startsWith("TRIGGER ")) {
+		String edge = line.substring(8);
+		if(edge == "RISING") setTriggerRising(true);
+		else if(edge == "FALLING") setTriggerRising(false);
+		else {
+			USB_PRINTLN("ERROR TRIGGER RISING|FALLING");
+			return;
+		}
+		repaintLabels();
+		USB_PRINTLN("OK");
+		return;
+	}
+
+	// Short compatibility commands
+	char cmd = line.charAt(0);
 	switch(cmd) {
-		case 'R': case 'r':
+		case 'R':
 			recMode = !recMode;
 			hold = false;
 			keepSampling = false;
@@ -25,21 +133,22 @@ void processSerialCommands() {
 			recCount = 0;
 			USB_PRINTLN(recMode ? "REC MODE ON" : "REC MODE OFF");
 			break;
-		case 'D': case 'd':
-			USB_PRINTLN("DUMPING...");
+		case 'D':
 			dumpRecCSV();
-			USB_PRINTLN("DONE");
+			USB_PRINTLN("OK");
 			break;
-		case 'C': case 'c':
+		case 'C':
 			recHead = 0;
 			recCount = 0;
 			USB_PRINTLN("BUFFER CLEARED");
 			break;
-		case 'H': case 'h':
+		case 'H':
 			hold = !hold;
 			repaintLabels();
 			USB_PRINTLN(hold ? "HOLD ON" : "HOLD OFF");
 			break;
+		default:
+			USB_PRINTLN("ERROR UNKNOWN COMMAND");
 	}
 }
 
@@ -57,6 +166,7 @@ void controlLoop()	{
 		if(!recMode) return;
 		drawRecStats(true);
 		recordPulse();
+		drawRecPlot();
 		// on hold: dump CSV
 		if(hold) {
 			dumpRecCSV();
