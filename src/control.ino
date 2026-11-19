@@ -21,8 +21,10 @@ void processSerialCommands() {
 			recMode = !recMode;
 			hold = false;
 			keepSampling = false;
-			recHead = 0;
-			recCount = 0;
+			if(recMode) {
+				recHead = 0;
+				recCount = 0;
+			}
 			USB_PRINTLN(recMode ? "REC MODE ON" : "REC MODE OFF");
 			break;
 		case 'D': case 'd':
@@ -48,22 +50,14 @@ void processSerialCommands() {
 void controlLoop()	{
 // ------------------------
 	processSerialCommands();
-	readInpSwitches();
 
 	if(recMode) {
-		drawRecStats(false);
-		while(recMode && digitalRead(REC_TRIGGER_IN) == LOW)
-			drawRecStats(false);
-		if(!recMode) return;
-		drawRecStats(true);
-		recordPulse();
-		// on hold: dump CSV
-		if(hold) {
-			dumpRecCSV();
-			hold = false;
-		}
+		if(digitalRead(REC_TRIGGER_IN) == HIGH)
+			recordPulse();
 		return;
 	}
+
+	readInpSwitches();
 
 	if(triggerType == TRIGGER_AUTO)	{
 		captureDisplayCycle(true);

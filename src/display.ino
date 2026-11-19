@@ -619,9 +619,10 @@ void showRecReady()	{
 // ------------------------
 void drawRecStats(boolean recording)	{
 // ------------------------
-	static long lastUpdate = 0;
-	if(millis() - lastUpdate < 1000) return;
-	lastUpdate = millis();
+	static uint32_t lastUpdate = 0;
+	uint32_t now = millis();
+	if((uint32_t)(now - lastUpdate) < 1000UL) return;
+	lastUpdate = now;
 
 	// REC indicator - blink red while recording
 	tft.setCursor(hOffset + 2, 4);

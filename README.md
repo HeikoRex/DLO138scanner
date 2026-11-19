@@ -41,6 +41,25 @@ Following changes can be applied selectively, to get maximum functionality from 
 		Other				Toggle on screen Analog CH1 statistics display
 
 	Press and hold OK button at power up to reset settings to default
+
+## Recording gated measurements to CSV on Windows
+
+The `R` serial command starts or stops REC mode. In REC mode, PA5 is the gate:
+CH1 is averaged while PA5 is HIGH, and the slope is calculated as delta CH1 /
+delta time over that HIGH interval. PA10 is not used for this recording.
+
+To capture continuously without the firmware's limited history buffer or a
+terminal scrollback limit, connect the board on COM3 and run this from the
+project directory in PowerShell:
+
+```
+powershell -ExecutionPolicy Bypass -File .\tools\capture_com.ps1 -PortName COM3 -DurationSeconds 5 -OutputPath .\capture.csv
+```
+
+The script starts and stops REC mode automatically and writes only
+`mean_mV,slope_mV_per_us` to the CSV file. Increase `DurationSeconds` for a
+longer capture. The existing `D` command still dumps only the most recent
+`REC_BUF_SIZE` records.
 	
 # Flash binaries directly via serial interface
 

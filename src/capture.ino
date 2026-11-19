@@ -279,47 +279,54 @@ void dumpSamples()	{
 // ------------------------
 void recordPulse() {
 // ------------------------
-	uint16_t buf[512];
-	uint16_t n = 0;
-	adc_reg_map *regs = ADC1->regs;
-	long t0 = micros();
-
-	while(digitalRead(TRIGGER_IN) == HIGH && n < 512) {
-		buf[n++] = (uint16_t)(regs->DR & ADC_DR_DATA);
-	}
-	long pulseUs = micros() - t0;
-
-	if(n < 4) return;
-
+	uint16_t first = 0;
+	uint16_t last = 0;
 	uint32_t sum = 0;
-	for(uint16_t i = 0; i < n; i++) sum += buf[i];
+	uint16_t n = 0;
+	uint32_t t0 = micros();
+
+	while(digitalRead(REC_TRIGGER_IN) == HIGH) {
+		if(n < 512) {
+			uint16_t sample = (uint16_t)(ADC1->regs->DR & ADC_DR_DATA);
+			if(n == 0) first = sample;
+			last = sample;
+			sum += sample;
+			n++;
+		}
+	}
+	uint32_t pulseUs = micros() - t0;
+
+	if(n == 0) return;
+
 	uint16_t mean = sum / n;
-
-	uint16_t vmin = buf[0], vmax = buf[0];
-	for(uint16_t i = 1; i < n; i++) {
-		if(buf[i] < vmin) vmin = buf[i];
-		if(buf[i] > vmax) vmax = buf[i];
-	}
-	uint16_t v10 = vmin + (vmax - vmin) / 10;
-	uint16_t v90 = vmin + (vmax - vmin) * 9 / 10;
-
-	int16_t i10 = -1, i90 = -1;
-	for(uint16_t i = 0; i < n; i++) {
-		if(i10 < 0 && buf[i] >= v10) i10 = i;
-		if(i90 < 0 && buf[i] >= v90) i90 = i;
-	}
-
-	int16_t rise = 0;
-	if(i10 >= 0 && i90 > i10) {
-		float usPerSample = (float)pulseUs / n;
-		float riseUs = (i90 - i10) * usPerSample;
-		rise = (int16_t)(((int32_t)(v90 - v10) * 100) / (int32_t)riseUs);
-	}
+	int32_t slopeX10 = (pulseUs > 0) ? ((int32_t)last - first) * 10 / pulseUs : 0;
+	if(slopeX10 > 32767) slopeX10 = 32767;
+	if(slopeX10 < -32768) slopeX10 = -32768;
+	int16_t slope = (int16_t)slopeX10;
 
 	recBuf[recHead].mean = mean;
-	recBuf[recHead].rise = rise;
+	recBuf[recHead].rise = slope;
 	recHead = (recHead + 1) % REC_BUF_SIZE;
 	if(recCount < REC_BUF_SIZE) recCount++;
+
+	float meanMv = ((int32_t)mean - zeroVoltageA1) * adcMultiplier[rangePos] * 1000.0f;
+	float slopeMvPerUsX10 = slope * adcMultiplier[rangePos] * 1000.0f;
+	int32_t meanMvInt = (int32_t)meanMv;
+	int32_t slopeMvPerUsX10Int = (int32_t)slopeMvPerUsX10;
+	if(meanMvInt > 32767) meanMvInt = 32767;
+	if(meanMvInt < -32768) meanMvInt = -32768;
+	if(slopeMvPerUsX10Int > 32767) slopeMvPerUsX10Int = 32767;
+	if(slopeMvPerUsX10Int < -32768) slopeMvPerUsX10Int = -32768;
+
+	uint16_t meanWire = (uint16_t)(int16_t)meanMvInt;
+	uint16_t slopeWire = (uint16_t)(int16_t)slopeMvPerUsX10Int;
+	// Sync bytes followed by signed little-endian mean mV and slope x10.
+	uint8_t packet[6] = {
+		0xA5, 0x5A,
+		(uint8_t)(meanWire & 0xFF), (uint8_t)(meanWire >> 8),
+		(uint8_t)(slopeWire & 0xFF), (uint8_t)(slopeWire >> 8)
+	};
+	Serial.write(packet, sizeof(packet));
 }
 
 
@@ -332,18 +339,16 @@ void dumpRecCSV() {
 	USB_PRINT("# Range: "); USB_PRINTLN(rngNames[rangePos]);
 	USB_PRINT("# Coupling: "); USB_PRINTLN(cplNames[couplingPos]);
 	USB_PRINT("# Records: "); USB_PRINTLN(recCount);
-	USB_PRINTLN("index,mean_adc,rise_adc_per_us_x100,pointer");
+	USB_PRINTLN("mean_mV,slope_mV_per_us");
 
 	uint16_t start = (recCount < REC_BUF_SIZE) ? 0 : recHead;
 	for(uint16_t i = 0; i < recCount; i++) {
 		uint16_t idx = (start + i) % REC_BUF_SIZE;
-		USB_PRINT(i);
+		float meanMv = ((int32_t)recBuf[idx].mean - zeroVoltageA1) * adcMultiplier[rangePos] * 1000.0f;
+		float slopeMvPerUs = recBuf[idx].rise * adcMultiplier[rangePos] * 100.0f;
+		USB_PRINT(meanMv, 2);
 		USB_PRINT(",");
-		USB_PRINT(recBuf[idx].mean);
-		USB_PRINT(",");
-		USB_PRINT(recBuf[idx].rise);
-		USB_PRINT(",");
-		USB_PRINTLN((idx == (recHead == 0 ? REC_BUF_SIZE-1 : recHead-1)) ? "<--" : "");
+		USB_PRINTLN(slopeMvPerUs, 2);
 	}
 	USB_PRINTLN("# END");
 }
