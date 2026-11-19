@@ -42,24 +42,56 @@ Following changes can be applied selectively, to get maximum functionality from 
 
 	Press and hold OK button at power up to reset settings to default
 
-## Recording gated measurements to CSV on Windows
+## PC serial commands
 
-The `R` serial command starts or stops REC mode. In REC mode, PA5 is the gate:
-CH1 is averaged while PA5 is HIGH, and the slope is calculated as delta CH1 /
-delta time over that HIGH interval. PA10 is not used for this recording.
+The firmware accepts newline terminated commands at 115200 baud. It returns plain text
+and CSV data over the USB serial connection.
 
-To capture continuously without the firmware's limited history buffer or a
-terminal scrollback limit, connect the board on COM3 and run this from the
-project directory in PowerShell:
+| Command | Result |
+| --- | --- |
+| `HELP` | List supported commands |
+| `STATUS` | Report timebase, sample count and operating state |
+| `SAMPLES` | Report the waveform sample depth |
+| `CAPTURE` | Start REC mode and reset the recorded pulse list |
+| `DUMP` | Output only the data collected in REC mode as CSV |
+| `AUTO` / `NORMAL` / `SINGLE` | Select trigger mode |
+| `HOLD ON` / `HOLD OFF` | Freeze or resume display capture |
+| `TIMEBASE 0..11` | Select the configured timebase |
+| `TRIGGER RISING` / `TRIGGER FALLING` | Select trigger edge |
 
+The existing `R`, `D`, `C` and `H` commands remain available for compatibility.
+
+### CSV output
+
+REC mode uses PA5 as its gate; PA10 is not used for this recording. While PA5 is HIGH,
+the firmware samples CH1 and calculates its mean and slope (`delta CH1 / delta time`)
+over the HIGH interval. The most recent `REC_BUF_SIZE` records remain in the ring
+buffer. `DUMP` reports those records in mV:
+
+```csv
+mean_mV,slope_mV_per_us
+12.34,-5.6
+...
 ```
+
+For captures longer than the ring buffer, stream results directly to a CSV file on
+Windows. This avoids terminal scrollback limits and works without Python packages:
+
+```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\capture_com.ps1 -PortName COM3 -DurationSeconds 5 -OutputPath .\capture.csv
 ```
 
-The script starts and stops REC mode automatically and writes only
-`mean_mV,slope_mV_per_us` to the CSV file. Increase `DurationSeconds` for a
-longer capture. The existing `D` command still dumps only the most recent
-`REC_BUF_SIZE` records.
+The script starts and stops REC mode automatically. Increase `DurationSeconds` for a
+longer capture. It writes only the mean and slope columns.
+
+The included Python helper can also stream a timed capture. Install `pyserial` first
+with `python -m pip install pyserial`:
+
+```text
+python tools/dlo138_serial.py COM3 STATUS
+python tools/dlo138_serial.py COM3 CAPTURE --csv capture.csv --duration 5
+python tools/dlo138_serial.py COM3 DUMP --csv dump.csv
+```
 	
 # Flash binaries directly via serial interface
 
@@ -105,5 +137,3 @@ STM32F103 - http://www.st.com/en/microcontrollers/stm32f103.html
 Adafruint Graphics Library - https://github.com/adafruit/Adafruit-GFX-Library
 
 Parallel 8 bit ILI9341 library - https://github.com/stevstrong/Adafruit_TFTLCD_8bit_STM32
-
-

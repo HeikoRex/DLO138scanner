@@ -11,6 +11,8 @@
 - `tools/capture_com.ps1` reads those frames from a Windows COM port and saves
   only `mean_mV,slope_mV_per_us` as CSV. Default capture duration is 5 seconds;
   pass `-DurationSeconds` to change it.
+- `tools/dlo138_serial.py` also supports timed capture using the same frame
+  format, plus the newline-terminated PC command interface.
 - Example:
 
   ```powershell
@@ -23,13 +25,15 @@
 ## Other related working-tree changes
 
 - Increased `REC_BUF_SIZE` from 500 to 1500.
+- Retained the newline-terminated PC command interface and CSV helper. Kept the
+  waveform sample depth at 2048 to preserve RAM for the 1500-record REC buffer.
 - Made the REC display update timer safe across `millis()` wraparound.
 - Updated the README with the Windows capture procedure.
 
 ## Verification and follow-up
 
 - PlatformIO build succeeded for `genericSTM32F103C8`; reported usage was
-  15,280 / 20,480 bytes RAM and 45,584 / 65,536 bytes flash.
+  15,640 / 20,480 bytes RAM and 50,924 / 65,536 bytes flash.
 - PowerShell syntax parsing and `git diff --check` passed.
 - The 1 kHz signal and especially 10 us gate pulses still need verification
   on the actual device.

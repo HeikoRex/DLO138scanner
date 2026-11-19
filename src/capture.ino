@@ -275,6 +275,21 @@ void dumpSamples()	{
 }
 
 
+// ------------------------
+void dumpSamplesCSV()	{
+// ------------------------
+	USB_PRINTLN("index,time_us,ch1_adc");
+	double timePerSample = ((double)samplingTime) / NUM_SAMPLES;
+	for(uint16_t i = 0; i < NUM_SAMPLES; i++) {
+		USB_PRINT(i);
+		USB_PRINT(",");
+		USB_PRINT((double)i * timePerSample, 3);
+		USB_PRINT(",");
+		USB_PRINTLN(ch1Capture[i]);
+	}
+}
+
+
 
 // ------------------------
 void recordPulse() {

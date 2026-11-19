@@ -21,7 +21,9 @@ void setup()	{
 	
 	DBG_INIT(SERIAL_BAUD_RATE);
 	Serial.begin();
-	Serial.println("DLO-138 ready. Commands: R=rec, D=dump, C=clear, H=hold");
+	Serial.println("DLO-138 ready");
+	Serial.println("Commands: HELP, STATUS, SAMPLES, DUMP, CAPTURE, SINGLE, AUTO, NORMAL");
+	Serial.println("HOLD ON|OFF, TIMEBASE 0..11, TRIGGER RISING|FALLING");
 	DBG_PRINT("Dual channel O Scope with two logic channels, ver: ");
 	DBG_PRINTLN(FIRMWARE_VERSION);
 
@@ -42,5 +44,4 @@ void loop()	{
 // ------------------------
 	controlLoop();
 }
-
 

@@ -24,7 +24,7 @@ try {
 	$writer = [System.IO.File]::CreateText($OutputPath)
 	$writer.WriteLine("mean_mV,slope_mV_per_us")
 
-	$serial.Write("R")
+	$serial.Write("CAPTURE`n")
 	$recording = $true
 	$watch = [System.Diagnostics.Stopwatch]::StartNew()
 	$readBuffer = New-Object byte[] 256
@@ -72,7 +72,7 @@ try {
 		}
 	}
 
-	$serial.Write("R")
+	$serial.Write("R`n")
 	$recording = $false
 	$writer.Flush()
 	Write-Host "$rows Messwerte gespeichert: $([System.IO.Path]::GetFullPath($OutputPath))"
@@ -80,7 +80,7 @@ try {
 finally {
 	try {
 		if ($recording -and $serial.IsOpen) {
-			$serial.Write("R")
+			$serial.Write("R`n")
 		}
 	}
 	finally {
