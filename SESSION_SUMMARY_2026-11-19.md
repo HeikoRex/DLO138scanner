@@ -4,6 +4,8 @@
 
 - REC mode uses PA5 as the gate. CH1 is sampled while PA5 is HIGH; PA10 is
   not used for this recording.
+- REC mode is selected from the device by short-pressing OK/BTN4 through
+  RUN → HOLD → REC → RUN; the REC label is redrawn on mode entry.
 - Each detected gate pulse stores the CH1 mean and the slope
   `delta CH1 / delta time` over the HIGH interval.
 - The firmware streams compact binary measurement frames instead of depending
@@ -33,7 +35,7 @@
 ## Verification and follow-up
 
 - PlatformIO build succeeded for `genericSTM32F103C8`; reported usage was
-  15,640 / 20,480 bytes RAM and 50,924 / 65,536 bytes flash.
+  15,640 / 20,480 bytes RAM and 50,948 / 65,536 bytes flash.
 - PowerShell syntax parsing and `git diff --check` passed.
 - The 1 kHz signal and especially 10 us gate pulses still need verification
   on the actual device.

@@ -68,6 +68,9 @@ the firmware samples CH1 and calculates its mean and slope (`delta CH1 / delta t
 over the HIGH interval. The most recent `REC_BUF_SIZE` records remain in the ring
 buffer. `DUMP` reports those records in mV:
 
+On the device, short-press the OK/BTN4 button to cycle **RUN → HOLD → REC → RUN**.
+The REC indicator is shown on screen; gate recording runs only in REC mode.
+
 ```csv
 mean_mV,slope_mV_per_us
 12.34,-5.6

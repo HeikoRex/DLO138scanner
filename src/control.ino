@@ -158,14 +158,21 @@ void processSerialCommands() {
 // ------------------------
 void controlLoop()	{
 // ------------------------
+	static boolean recModeWasActive = false;
+
 	processSerialCommands();
 
 	if(recMode) {
+		if(!recModeWasActive) {
+			drawLabels();
+			recModeWasActive = true;
+		}
 		if(digitalRead(REC_TRIGGER_IN) == HIGH)
 			recordPulse();
 		return;
 	}
 
+	recModeWasActive = false;
 	readInpSwitches();
 
 	if(triggerType == TRIGGER_AUTO)	{
