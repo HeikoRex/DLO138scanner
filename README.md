@@ -71,7 +71,9 @@ uses the last sample minus the first. The mean is clamped to 0–4000 mV. The mo
 `REC_BUF_SIZE` records remain in the ring buffer. `DUMP` reports those records in mV:
 
 On the device, short-press the OK/BTN4 button to cycle **RUN → HOLD → REC → RUN**.
-The REC indicator is shown on screen; gate recording runs only in REC mode.
+The REC indicator is shown on screen; gate recording runs only in REC mode. During
+recording, the display updates the ring-buffer count and latest mean/ΔmV once per
+second.
 
 ```csv
 mean_mV,delta_mV

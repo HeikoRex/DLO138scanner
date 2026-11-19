@@ -169,6 +169,8 @@ void controlLoop()	{
 		}
 		if(digitalRead(REC_TRIGGER_IN) == HIGH)
 			recordPulse();
+		else
+			drawRecStats(false);
 		return;
 	}
 

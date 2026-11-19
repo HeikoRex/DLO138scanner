@@ -5,7 +5,8 @@
 - REC mode uses PA5 as the gate. CH1 is sampled while PA5 is HIGH; PA10 is
   not used for this recording.
 - REC mode is selected from the device by short-pressing OK/BTN4 through
-  RUN → HOLD → REC → RUN; the REC label is redrawn on mode entry.
+  RUN → HOLD → REC → RUN; the REC label is redrawn on mode entry, with buffer
+  count and latest measurements refreshed once per second.
 - Each detected gate pulse stores the CH1 mean and `delta_mV`. For 9 or more
   samples, delta is the average of the last 4 minus the first 4 samples; for fewer
   samples it is last minus first. No time division is used.
@@ -39,7 +40,7 @@
 ## Verification and follow-up
 
 - PlatformIO build succeeded for `genericSTM32F103C8`; reported usage was
-  15,640 / 20,480 bytes RAM and 50,928 / 65,536 bytes flash.
+  15,648 / 20,480 bytes RAM and 51,264 / 65,536 bytes flash.
 - PowerShell syntax parsing and `git diff --check` passed.
 - The 1 kHz signal and especially 10 us gate pulses still need verification
   on the actual device.
