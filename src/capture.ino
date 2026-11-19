@@ -292,54 +292,77 @@ void dumpSamplesCSV()	{
 
 
 // ------------------------
+float getMilliVoltsPerAdcCount() {
+// ------------------------
+	float scale = adcMultiplier[rangePos];
+	if(rangePos < RNG_50mV)
+		scale *= 1000.0f;
+	return scale;
+}
+
+
+
+// ------------------------
 void recordPulse() {
 // ------------------------
 	uint16_t first = 0;
 	uint16_t last = 0;
 	uint32_t sum = 0;
+	uint32_t firstFourSum = 0;
+	uint32_t lastFourSum = 0;
+	uint16_t lastFour[4] = {0, 0, 0, 0};
 	uint16_t n = 0;
-	uint32_t t0 = micros();
+	uint8_t firstFourCount = 0;
+	uint8_t lastFourCount = 0;
+	uint8_t lastFourIndex = 0;
 
 	while(digitalRead(REC_TRIGGER_IN) == HIGH) {
-		if(n < 512) {
-			uint16_t sample = (uint16_t)(ADC1->regs->DR & ADC_DR_DATA);
-			if(n == 0) first = sample;
-			last = sample;
-			sum += sample;
-			n++;
+		uint16_t sample = (uint16_t)(ADC1->regs->DR & ADC_DR_DATA);
+		if(n == 0) first = sample;
+		last = sample;
+		sum += sample;
+		n++;
+
+		if(firstFourCount < 4) {
+			firstFourSum += sample;
+			firstFourCount++;
 		}
+		if(lastFourCount == 4)
+			lastFourSum -= lastFour[lastFourIndex];
+		else
+			lastFourCount++;
+		lastFour[lastFourIndex] = sample;
+		lastFourSum += sample;
+		lastFourIndex = (lastFourIndex + 1) % 4;
 	}
-	uint32_t pulseUs = micros() - t0;
 
 	if(n == 0) return;
 
-	uint16_t mean = sum / n;
-	int32_t slopeX10 = (pulseUs > 0) ? ((int32_t)last - first) * 10 / pulseUs : 0;
-	if(slopeX10 > 32767) slopeX10 = 32767;
-	if(slopeX10 < -32768) slopeX10 = -32768;
-	int16_t slope = (int16_t)slopeX10;
+	uint16_t meanAdc = sum / n;
+	float milliVoltsPerAdcCount = getMilliVoltsPerAdcCount();
+	int32_t meanMv = (int32_t)(((int32_t)meanAdc - zeroVoltageA1) * milliVoltsPerAdcCount);
+	if(meanMv < 0) meanMv = 0;
+	if(meanMv > 4000) meanMv = 4000;
 
-	recBuf[recHead].mean = mean;
-	recBuf[recHead].rise = slope;
+	float deltaAdc = (n >= 9)
+		? ((int32_t)lastFourSum - (int32_t)firstFourSum) / 4.0f
+		: (int32_t)last - first;
+	int32_t deltaMv = (int32_t)(deltaAdc * milliVoltsPerAdcCount);
+	if(deltaMv > 4000) deltaMv = 4000;
+	if(deltaMv < -4000) deltaMv = -4000;
+
+	recBuf[recHead].meanMv = (uint16_t)meanMv;
+	recBuf[recHead].deltaMv = (int16_t)deltaMv;
 	recHead = (recHead + 1) % REC_BUF_SIZE;
 	if(recCount < REC_BUF_SIZE) recCount++;
 
-	float meanMv = ((int32_t)mean - zeroVoltageA1) * adcMultiplier[rangePos] * 1000.0f;
-	float slopeMvPerUsX10 = slope * adcMultiplier[rangePos] * 1000.0f;
-	int32_t meanMvInt = (int32_t)meanMv;
-	int32_t slopeMvPerUsX10Int = (int32_t)slopeMvPerUsX10;
-	if(meanMvInt > 32767) meanMvInt = 32767;
-	if(meanMvInt < -32768) meanMvInt = -32768;
-	if(slopeMvPerUsX10Int > 32767) slopeMvPerUsX10Int = 32767;
-	if(slopeMvPerUsX10Int < -32768) slopeMvPerUsX10Int = -32768;
-
-	uint16_t meanWire = (uint16_t)(int16_t)meanMvInt;
-	uint16_t slopeWire = (uint16_t)(int16_t)slopeMvPerUsX10Int;
-	// Sync bytes followed by signed little-endian mean mV and slope x10.
+	uint16_t meanWire = (uint16_t)meanMv;
+	uint16_t deltaWire = (uint16_t)(int16_t)deltaMv;
+	// Sync bytes followed by unsigned mean mV and signed delta mV.
 	uint8_t packet[6] = {
 		0xA5, 0x5A,
 		(uint8_t)(meanWire & 0xFF), (uint8_t)(meanWire >> 8),
-		(uint8_t)(slopeWire & 0xFF), (uint8_t)(slopeWire >> 8)
+		(uint8_t)(deltaWire & 0xFF), (uint8_t)(deltaWire >> 8)
 	};
 	Serial.write(packet, sizeof(packet));
 }
@@ -354,16 +377,14 @@ void dumpRecCSV() {
 	USB_PRINT("# Range: "); USB_PRINTLN(rngNames[rangePos]);
 	USB_PRINT("# Coupling: "); USB_PRINTLN(cplNames[couplingPos]);
 	USB_PRINT("# Records: "); USB_PRINTLN(recCount);
-	USB_PRINTLN("mean_mV,slope_mV_per_us");
+	USB_PRINTLN("mean_mV,delta_mV");
 
 	uint16_t start = (recCount < REC_BUF_SIZE) ? 0 : recHead;
 	for(uint16_t i = 0; i < recCount; i++) {
 		uint16_t idx = (start + i) % REC_BUF_SIZE;
-		float meanMv = ((int32_t)recBuf[idx].mean - zeroVoltageA1) * adcMultiplier[rangePos] * 1000.0f;
-		float slopeMvPerUs = recBuf[idx].rise * adcMultiplier[rangePos] * 100.0f;
-		USB_PRINT(meanMv, 2);
+		USB_PRINT(recBuf[idx].meanMv);
 		USB_PRINT(",");
-		USB_PRINTLN(slopeMvPerUs, 2);
+		USB_PRINTLN(recBuf[idx].deltaMv);
 	}
 	USB_PRINTLN("# END");
 }

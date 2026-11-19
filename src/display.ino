@@ -646,9 +646,9 @@ void drawRecStats(boolean recording)	{
 	if(recCount > 0)	{
 		uint16_t last = (recHead == 0) ? REC_BUF_SIZE - 1 : recHead - 1;
 		tft.setCursor(hOffset + 2, 30);
-		tft.print("mean:"); tft.print(recBuf[last].mean); tft.print("   ");
+		tft.print("mean:"); tft.print(recBuf[last].meanMv); tft.print("mV   ");
 		tft.setCursor(hOffset + 2, 40);
-		tft.print("rise:"); tft.print(recBuf[last].rise); tft.print("   ");
+		tft.print("delta:"); tft.print(recBuf[last].deltaMv); tft.print("mV   ");
 	}
 }
 
@@ -669,18 +669,18 @@ void drawRecPlot()	{
 		uint16_t idx = (start + i) % REC_BUF_SIZE;
 		int16_t x = hOffset + 1 + ((uint32_t)i * (GRID_WIDTH - 2)) / recCount;
 
-		int16_t meanY = GRID_HEIGHT + vOffset - (recBuf[idx].mean * (GRID_HEIGHT - 2)) / ADC_MAX_VAL;
-		int16_t riseY = vOffset + GRID_HEIGHT/2 - ((int32_t)recBuf[idx].rise * (GRID_HEIGHT/2 - 2)) / 500;
-		if(riseY < vOffset + 1) riseY = vOffset + 1;
-		if(riseY > vOffset + GRID_HEIGHT - 2) riseY = vOffset + GRID_HEIGHT - 2;
+		int16_t meanY = GRID_HEIGHT + vOffset - (recBuf[idx].meanMv * (GRID_HEIGHT - 2)) / 4000;
+		int16_t deltaY = vOffset + GRID_HEIGHT/2 - ((int32_t)recBuf[idx].deltaMv * (GRID_HEIGHT/2 - 2)) / 4000;
+		if(deltaY < vOffset + 1) deltaY = vOffset + 1;
+		if(deltaY > vOffset + GRID_HEIGHT - 2) deltaY = vOffset + GRID_HEIGHT - 2;
 
 		if(prevMeanY >= 0)
 			tft.drawLine(x - 1, prevMeanY, x, meanY, AN_SIGNAL1);
 		if(prevRiseY >= 0)
-			tft.drawLine(x - 1, prevRiseY, x, riseY, AN_SIGNAL2);
+			tft.drawLine(x - 1, prevRiseY, x, deltaY, AN_SIGNAL2);
 
 		prevMeanY = meanY;
-		prevRiseY = riseY;
+		prevRiseY = deltaY;
 	}
 }
 

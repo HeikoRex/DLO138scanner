@@ -11,8 +11,8 @@ volatile boolean recMode = false;
 // pulse ring buffer
 #define REC_BUF_SIZE  1500
 struct PulseRec {
-	uint16_t mean;
-	int16_t  rise;
+	uint16_t meanMv;
+	int16_t  deltaMv;
 };
 PulseRec recBuf[REC_BUF_SIZE];
 uint16_t recHead = 0;

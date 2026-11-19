@@ -64,18 +64,23 @@ The existing `R`, `D`, `C` and `H` commands remain available for compatibility.
 ### CSV output
 
 REC mode uses PA5 as its gate; PA10 is not used for this recording. While PA5 is HIGH,
-the firmware samples CH1 and calculates its mean and slope (`delta CH1 / delta time`)
-over the HIGH interval. The most recent `REC_BUF_SIZE` records remain in the ring
-buffer. `DUMP` reports those records in mV:
+the firmware samples CH1 and calculates its mean and delta over the HIGH interval.
+The delta is `end - start` in mV, without dividing by pulse duration. With 9 or more
+samples, it uses the average of the first 4 and last 4 samples; with fewer samples it
+uses the last sample minus the first. The mean is clamped to 0–4000 mV. The most recent
+`REC_BUF_SIZE` records remain in the ring buffer. `DUMP` reports those records in mV:
 
 On the device, short-press the OK/BTN4 button to cycle **RUN → HOLD → REC → RUN**.
 The REC indicator is shown on screen; gate recording runs only in REC mode.
 
 ```csv
-mean_mV,slope_mV_per_us
-12.34,-5.6
+mean_mV,delta_mV
+1234,-6
 ...
 ```
+
+Both CSV values are integers; the mean and delta are limited to the 0–4000 mV signal
+range (the delta is signed).
 
 For captures longer than the ring buffer, stream results directly to a CSV file on
 Windows. This avoids terminal scrollback limits and works without Python packages:
@@ -85,7 +90,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\capture_com.ps1 -PortName COM3 
 ```
 
 The script starts and stops REC mode automatically. Increase `DurationSeconds` for a
-longer capture. It writes only the mean and slope columns.
+longer capture. It writes only the mean and delta columns.
 
 The included Python helper can also stream a timed capture. Install `pyserial` first
 with `python -m pip install pyserial`:

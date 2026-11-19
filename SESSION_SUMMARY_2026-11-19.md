@@ -6,12 +6,16 @@
   not used for this recording.
 - REC mode is selected from the device by short-pressing OK/BTN4 through
   RUN → HOLD → REC → RUN; the REC label is redrawn on mode entry.
-- Each detected gate pulse stores the CH1 mean and the slope
-  `delta CH1 / delta time` over the HIGH interval.
+- Each detected gate pulse stores the CH1 mean and `delta_mV`. For 9 or more
+  samples, delta is the average of the last 4 minus the first 4 samples; for fewer
+  samples it is last minus first. No time division is used.
+- Values use integer units: mean is unsigned mV clamped to 0–4000, and delta is
+  signed mV clamped to -4000..4000. Display range scaling and CH1 zero offset are
+  applied.
 - The firmware streams compact binary measurement frames instead of depending
   on the 1500-entry history buffer for long captures.
 - `tools/capture_com.ps1` reads those frames from a Windows COM port and saves
-  only `mean_mV,slope_mV_per_us` as CSV. Default capture duration is 5 seconds;
+  only `mean_mV,delta_mV` as CSV. Default capture duration is 5 seconds;
   pass `-DurationSeconds` to change it.
 - `tools/dlo138_serial.py` also supports timed capture using the same frame
   format, plus the newline-terminated PC command interface.
@@ -35,7 +39,7 @@
 ## Verification and follow-up
 
 - PlatformIO build succeeded for `genericSTM32F103C8`; reported usage was
-  15,640 / 20,480 bytes RAM and 50,948 / 65,536 bytes flash.
+  15,640 / 20,480 bytes RAM and 50,928 / 65,536 bytes flash.
 - PowerShell syntax parsing and `git diff --check` passed.
 - The 1 kHz signal and especially 10 us gate pulses still need verification
   on the actual device.

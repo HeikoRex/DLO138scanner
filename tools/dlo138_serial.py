@@ -21,7 +21,7 @@ def capture_binary(device: serial.Serial, duration: float, output_path: str) -> 
     try:
         with open(output_path, "w", encoding="ascii", newline="") as csv_file:
             writer = csv.writer(csv_file)
-            writer.writerow(("mean_mV", "slope_mV_per_us"))
+            writer.writerow(("mean_mV", "delta_mV"))
             while time.monotonic() < deadline:
                 data.extend(device.read(256))
                 while True:
@@ -33,8 +33,8 @@ def capture_binary(device: serial.Serial, duration: float, output_path: str) -> 
                         del data[:marker]
                     if len(data) < 6:
                         break
-                    mean_mv, slope_x10 = struct.unpack_from("<hh", data, 2)
-                    writer.writerow((mean_mv, f"{slope_x10 / 10:.1f}"))
+                    mean_mv, delta_mv = struct.unpack_from("<Hh", data, 2)
+                    writer.writerow((mean_mv, delta_mv))
                     rows += 1
                     del data[:6]
     finally:
@@ -89,7 +89,7 @@ def main() -> int:
                 i
                 for i, line in enumerate(lines)
                 if line.strip() in (
-                    "mean_mV,slope_mV_per_us",
+                    "mean_mV,delta_mV",
                     "index,mean_adc,rise_adc_per_us_x100",
                 )
             ),

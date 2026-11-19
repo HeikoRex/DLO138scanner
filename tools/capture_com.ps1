@@ -22,7 +22,7 @@ try {
 	$serial.Open()
 	$serial.DiscardInBuffer()
 	$writer = [System.IO.File]::CreateText($OutputPath)
-	$writer.WriteLine("mean_mV,slope_mV_per_us")
+	$writer.WriteLine("mean_mV,delta_mV")
 
 	$serial.Write("CAPTURE`n")
 	$recording = $true
@@ -58,13 +58,9 @@ try {
 				$payload[$payloadIndex] = $value
 				$payloadIndex++
 				if ($payloadIndex -eq 4) {
-					$meanMv = [System.BitConverter]::ToInt16($payload, 0)
-					$slopeX10 = [System.BitConverter]::ToInt16($payload, 2)
-					$slopeText = ($slopeX10 / 10.0).ToString(
-						"F1",
-						[System.Globalization.CultureInfo]::InvariantCulture
-					)
-					$writer.WriteLine("{0},{1}" -f $meanMv, $slopeText)
+					$meanMv = [System.BitConverter]::ToUInt16($payload, 0)
+					$deltaMv = [System.BitConverter]::ToInt16($payload, 2)
+					$writer.WriteLine("{0},{1}" -f $meanMv, $deltaMv)
 					$rows++
 					$syncState = 0
 				}
